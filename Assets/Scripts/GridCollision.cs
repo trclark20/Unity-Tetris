@@ -14,8 +14,8 @@ public class GridCollision : MonoBehaviour
     }
     private static int[,] _collisionMatrix = new int[BOARD_SIZE_X + 2, BOARD_SIZE_Y + 2];
 
-    const int BOARD_SIZE_X = 10;
-    const int BOARD_SIZE_Y = 20;
+    public const int BOARD_SIZE_X = 10;
+    public const int BOARD_SIZE_Y = 20;
 
     // Start is called before the first frame update
     void Start()
@@ -32,6 +32,7 @@ public class GridCollision : MonoBehaviour
     /// <summary>
     /// Generates 1 block collision border around play area
     /// </summary>
+    /// <param name="collisionMatrix">int array of collision matrix</param>
     void GridCollisionSetup(int[,] collisionMatrix)
     {
         for (int i = 0; i <= BOARD_SIZE_X + 1; i++)

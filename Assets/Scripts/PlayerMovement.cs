@@ -21,9 +21,11 @@ public class PlayerMovement : MonoBehaviour
     Sprite[] sprites;
 
     float timeToIncrease;
-    float startTime;
 
-    bool movementCooldown;
+    float startTime, upTime, pressTime = 0;
+    float countDown = 0.5f;
+    float yCollisionGracePeriod = 0f;
+    bool readyX, readyY = false;
 
     // Start is called before the first frame update
     void Start()
@@ -48,6 +50,7 @@ public class PlayerMovement : MonoBehaviour
         bool xPos = Input.GetButtonDown("HorizontalPos");
         bool xPosHeld = Input.GetButton("HorizontalPos");
         bool xNegHeld = Input.GetButton("HorizontalNeg");
+        bool xDown = Input.GetButton("Vertical");
 
         uiText.text = "";
         for (int i = 0; i < 4; i++)
@@ -64,7 +67,7 @@ public class PlayerMovement : MonoBehaviour
             down_arrow.color = new Color32(33, 33, 33, 255);
         }
 
-        if (xPos)
+        if (xPosHeld)
         {
             right_arrow.color = new Color32(247, 255, 99, 100);
         }
@@ -73,7 +76,7 @@ public class PlayerMovement : MonoBehaviour
             right_arrow.color = new Color32(33, 33, 33, 255);
         }
 
-        if (xNeg)
+        if (xNegHeld)
         {
             left_arrow.color = new Color32(247, 255, 99, 100);
         }
@@ -82,115 +85,166 @@ public class PlayerMovement : MonoBehaviour
             left_arrow.color = new Color32(33, 33, 33, 255);
         }
 
+        #region Vertical Movement Down
+
+        if (xDown)
+        {
+            VertMoveDown(true);
+        }
+
         if (timer.movY && !CheckCollision(player.coords, true, 1).Contains(1))
         {
-            //Movement: x: 1 y: 1
-            player.gameBlock.transform.position = new Vector3(player.gameBlock.transform.position.x, player.gameBlock.transform.position.y - 1, 0f);
-
-            for (int i = 0; i < 4; i++)
-            {
-                player.coords[i].y += 1;
-            }
-
-            timer.movY = false;
+            VertMoveDown();
         }
         //if Y collision occurs, block will stop
-        else if (CheckCollision(player.coords, true, 1).Contains(1))
+        else if (timer.movY && CheckCollision(player.coords, true, 1).Contains(1))
         {
+            
             //release the child 
             for (int i = 0; i < 4; i++)
             {
                 gridCollisionScript.collisionMatrix[player.coords[i].x, player.coords[i].y] = 1;
             }
 
+            //Check for row clear
+
+            for (int i = 0; i < 4; i++)
+            {
+                if (!CheckLineClear(player.coords[i]).Contains(0))
+                {
+                    Debug.Log("Good!!");
+                }
+            }
+
             player = new BlockSpawnScript.Block();
         }
-        
-            //Horizontal movement right held
-            if (xPosHeld && !xPos)
-            {
-                if (Time.time - startTime > timeToIncrease)
-                {
-                    timer.x -= timeToIncrease;
-                    startTime = Time.time;
-                }
 
-                HorizMoveRight(true);
-                timer.movX = false;
-            }
+        #endregion
 
-            //Horizontal movement right
-            if (xPos)
-            {
-                //player.gameBlock.transform.position = new Vector3(player.gameBlock.transform.position.x + 1f, player.gameBlock.transform.position.y, 0f);
-                timeToIncrease = 20000000f;
-                startTime = Time.time;
+        #region Horizontal Movement Right
+        if (xPos)
+        {
+            //Move right, ignoring timer
+            HorizMoveRight(true);
+        }
+        if (xPos && !readyX)
+        {
+            startTime = Time.time;
+            pressTime = startTime + countDown;
+            readyX = true;
+            //player.gameBlock.transform.position = new Vector3(player.gameBlock.transform.position.x + 1f, player.gameBlock.transform.position.y, 0f);
 
-                HorizMoveRight();
-                timer.movX = false;
-                movementCooldown = true;
-            }
+            //timer.movX = false;
+        }
+        if (Input.GetButtonUp("HorizontalPos"))
+        {
+            readyX = false;
+        }
+        if (xPosHeld && Time.time >= pressTime && readyX == true)
+        {
+            HorizMoveRight();
+        }
+        #endregion
 
-            //Horizontal movement left
-            else if (xNeg && !CheckCollision(player.coords, false, -1).Contains(1))
-            {
-                player.gameBlock.transform.position = new Vector3(player.gameBlock.transform.position.x - 1f, player.gameBlock.transform.position.y, 0f);
+        #region Horizontal Movement Left
+        if (xNeg)
+        {
+            //Move Left, ignoring timer
+            HorizMoveLeft(true);
+        }
+        if (xNeg && !readyY) 
+        {
+            startTime = Time.time;
+            pressTime = startTime + countDown;
+            readyY = true;
+            //player.gameBlock.transform.position = new Vector3(player.gameBlock.transform.position.x + 1f, player.gameBlock.transform.position.y, 0f);
 
-                for (int i = 0; i < 4; i++)
-                {
-                    player.coords[i].x -= 1;
-                }
-
-                timer.movX = false;
-            }
+            //timer.movX = false;
+        }
+        if (Input.GetButtonUp("HorizontalNeg"))
+        {
+            readyY = false;
+        }
+        if (xNegHeld && Time.time >= pressTime && readyY == true)
+        {
+            HorizMoveLeft();
+        }
+        #endregion
     }
 
+    /// <summary>
+    /// Moves object 1 block right, horizontally
+    /// </summary>
+    /// <param name="bypassTimer">Whether to ignore the movement timer or not</param>
     void HorizMoveRight(bool bypassTimer = false)
     {
-        if (bypassTimer)
+        //optionally bypass movement timer
+        if ((timer.movX || bypassTimer) && !CheckCollision(player.coords, false, 1).Contains(1))
         {
-            if (!CheckCollision(player.coords, false, 1).Contains(1))
+            for (int i = 0; i < 4; i++)
             {
-                for (int i = 0; i < 4; i++)
-                {
-                    player.coords[i].x += 1;
-                }
-
-                player.gameBlock.transform.position = new Vector3(player.gameBlock.transform.position.x + 1f, player.gameBlock.transform.position.y, 0f);
-
-                timer.movX = false;
+                player.coords[i].x += 1;
             }
+
+            player.gameBlock.transform.position = new Vector3(player.gameBlock.transform.position.x + 1f, player.gameBlock.transform.position.y, 0f);
+
+            timer.movX = false;
         }
-        else
+    }
+
+    /// <summary>
+    /// Moves object 1 block left, horizontally
+    /// </summary>
+    /// <param name="bypassTimer">Whether to ignore the movement timer or not</param>
+    void HorizMoveLeft(bool bypassTimer = false)
+    {
+        //optionally bypass movement timer
+        if ((timer.movX || bypassTimer) && !CheckCollision(player.coords, false, -1).Contains(1))
         {
-            if (timer.movX && !CheckCollision(player.coords, false, 1).Contains(1))
+            for (int i = 0; i < 4; i++)
             {
-                for (int i = 0; i < 4; i++)
-                {
-                    player.coords[i].x += 1;
-                }
-
-                player.gameBlock.transform.position = new Vector3(player.gameBlock.transform.position.x + 1f, player.gameBlock.transform.position.y, 0f);
-
-                timer.movX = false;
+                player.coords[i].x -= 1;
             }
+
+            player.gameBlock.transform.position = new Vector3(player.gameBlock.transform.position.x - 1f, player.gameBlock.transform.position.y, 0f);
+
+            timer.movX = false;
+        }
+    }
+
+    /// <summary>
+    /// Moves object 1 block down, vertically
+    /// </summary>
+    /// <param name="bypassTimer">Whether to ignore the movement timer or not</param>
+    void VertMoveDown(bool bypassTimer = false)
+    {
+        //optionally bypass movement timer
+        if ((timer.movY || bypassTimer) && !CheckCollision(player.coords, true, 1).Contains(1))
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                player.coords[i].y += 1;
+            }
+
+            player.gameBlock.transform.position = new Vector3(player.gameBlock.transform.position.x, player.gameBlock.transform.position.y - 1, 0f);
+
+            timer.movY = false;
         }
     }
 
     /// <summary>
     /// Checks if the player will collide on moving
     /// </summary>
-    /// <param name="xCoord">X movement</param>
-    /// <param name="yCoord">Y movement</param>
-    /// <param name="direction">direction of movement, -1 is up/left and 1 is down/right</param>
+    /// <param name="coords">Vector2 of X and Y coordinates</param>
     /// <param name="vertical">if the movement is veritcal or not</param>
+    /// <param name="direction">direction of movement, -1 is up/left and 1 is down/right</param>
     int[] CheckCollision(Vector2Int[] coords, bool vertical, int direction)
     {
         int[] results = { 0, 0, 0, 0 };
 
         for (int i = 0; i < 4; i++)
         {
-            if (vertical ? gridCollisionScript.collisionMatrix[coords[i].x, coords[i].y + direction] == 1 : 
+            if (vertical ? gridCollisionScript.collisionMatrix[coords[i].x, coords[i].y + direction] == 1 :
                 gridCollisionScript.collisionMatrix[coords[i].x + direction, coords[i].y] == 1)
             {
                 results[i] = 1;
@@ -200,6 +254,25 @@ public class PlayerMovement : MonoBehaviour
                 results[i] = 0;
             }
         }
+        return results;
+    }
+
+    int[] CheckLineClear(Vector2Int coords)
+    {
+        int[] results = new int[GridCollision.BOARD_SIZE_X];
+
+        //Loop through game board, check if row is all 1's
+            for (int j = 0; j < GridCollision.BOARD_SIZE_X; j++)
+            {
+                if (gridCollisionScript.collisionMatrix[j, coords.y] == 1)
+                {
+                    results[j] = 1;
+                }
+                else
+                {
+                    results[j] = 0;
+                }
+            }
         return results;
     }
 }

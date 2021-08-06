@@ -14,8 +14,8 @@ public class GameTimer : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        x = 150f;
-        y = 150f;
+        x = 5f;
+        y = 1f;
         movX = false;
         movY = false;
     }
@@ -23,8 +23,8 @@ public class GameTimer : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        x -= Time.deltaTime * 150f;
-        y -= Time.deltaTime * 100f;
+        x -= Time.deltaTime * 600f;
+        y -= Time.deltaTime * 1f;
 
         if (x <= 0f)
         {
@@ -35,7 +35,7 @@ public class GameTimer : MonoBehaviour
         if (y <= 0f)
         {
             movY = true;
-            y = 20f;
+            y = 1f;
         }
     }
 }
